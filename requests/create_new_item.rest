@@ -1,0 +1,7 @@
+POST http://localhost:3001/api/items/
+content-type: application/json
+
+{
+    "name": "New item",
+    "price": "100"
+}
