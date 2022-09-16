@@ -1,15 +1,42 @@
+//Express
 const express = require('express')
 const app = express()
-require('dotenv').config()
+
+//Multer
+const multer = require('multer')
+const storage = multer.diskStorage({
+  destination: function (request, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (request, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + '.png')
+  }
+})
+
+//Environmental variables
+const dotenv = require('dotenv')
+dotenv.config()
+
+//Cloudinary
+const cloudinary = require('cloudinary').v2
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+})
+
+//Models import
 const Item = require('./models/item')
 
-app.use(express.static('build'))
-app.use(express.json())
+//Requests
 
+//Main page
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
+//Get all items
 app.get('/api/items', (request, response, next) => {
   Item.find({}).then(items => {
     response.json(items)
@@ -17,6 +44,7 @@ app.get('/api/items', (request, response, next) => {
     .catch(error => next(error))
 })
 
+//Get item by id
 app.get('/api/items/:id', (request, response, next) => {
   Item.findById(request.params.id)
     .then(item => {
@@ -29,25 +57,46 @@ app.get('/api/items/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-app.post('/api/items', (request, response, next) => {
-  const body = request.body
+//Post new items
+const upload = multer({ storage }).single('image')
+app.post('/api/items', (req, res) => {
+  upload(req, res, (err) => {
+    if (err) {
+      return res.send(err)
+    }
+    const body = req.body
+    const path = req.file.path
+    const uniqueFilename = new Date().toISOString()
 
-  if (body.name === undefined || body.price === undefined) {
-    return response.status(400).json({ error: 'content missing' })
-  }
+    cloudinary.uploader.upload(
+      path,
+      { public_id: `images/${uniqueFilename}` }, 
+      (err, image) => {
+        if (err)
+          return res.send(err)
 
-  const item = new Item({
-    name: body.name,
-    price: body.price,
-    date: new Date()
+        const fs = require('fs')
+        fs.unlinkSync(path)
+        
+        const item = new Item({
+          name: body.name,
+          price: body.price,
+          added: new Date(),
+          mainPhoto: image.secure_url
+        })
+
+        console.log(item)
+
+        item.save().then(savedItem => {
+          res.json(savedItem)
+        })
+
+      }
+    )
   })
-
-  item.save().then(savedItem => {
-    response.json(savedItem)
-  })
-    .catch(error => next(error))
 })
 
+//Edit existing item
 app.put('/api/items/:id', (request, response, next) => {
   const body = request.body
 
@@ -71,12 +120,14 @@ app.delete('/api/items/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
+//Unknown endpoint
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
+//Error handler
 const errorHandler = (error, request, response, next) => {
   console.error(error.name)
 
@@ -88,7 +139,7 @@ const errorHandler = (error, request, response, next) => {
 
 app.use(errorHandler)
 
-const PORT = 3001
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+//Start server
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`)
 })
