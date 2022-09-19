@@ -64,19 +64,19 @@ app.get('/api/items/:id', (request, response, next) => {
 //Image upload
 const cloudinaryImageUpload = async file => {
   return new Promise(resolve => {
-      cloudinary.uploader.upload( file , (err, result) => {
-        if (err) return result.status(500).send("upload image error")
-          resolve({
-            url: result.secure_url,
-            id: result.public_id
-          }) 
-        }
-      ) 
+    cloudinary.uploader.upload(file, (err, result) => {
+      if (err) return result.status(500).send("upload image error")
+      resolve({
+        url: result.secure_url,
+        id: result.public_id
+      })
+    }
+    )
   })
 }
 
-//Post new items
-app.post('/api/items', upload.array('images', 8), async (req, res) => {
+//Create new items
+app.post('/api/items', upload.array('images', 8), async (req, res, next) => {
 
   const urls = []
   const body = req.body
@@ -101,17 +101,34 @@ app.post('/api/items', upload.array('images', 8), async (req, res) => {
   item.save().then(savedItem => {
     res.json(savedItem)
   })
+  .catch(error => next(error))
 
 })
 
 //Edit existing item
-app.put('/api/items/:id', (request, response, next) => {
-  const body = request.body
+app.put('/api/items/:id', upload.array('images', 8), async (request, response, next) => {
 
-  const item = {
-    name: body.name,
-    price: body.price
+  const urls = []
+  const body = req.body
+  const files = req.files
+
+
+
+  for (const file of files) {
+    const { path } = file
+    const newPath = await cloudinaryImageUpload(path)
+    urls.push(newPath)
+    fs.unlinkSync(path)
   }
+
+  const item = new Item({
+    name: body.name,
+    price: body.price,
+    added: new Date(),
+    photos: urls
+  })
+
+  console.log(item)
 
   Item.findByIdAndUpdate(request.params.id, item, { new: true })
     .then(updatedItem => {
@@ -120,9 +137,11 @@ app.put('/api/items/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
+//Delete item
 app.delete('/api/items/:id', (request, response, next) => {
   Item.findByIdAndRemove(request.params.id)
     .then(result => {
+      result.photos.every((currentValue) => cloudinary.uploader.destroy(currentValue.id))
       response.status(204).end()
     })
     .catch(error => next(error))
