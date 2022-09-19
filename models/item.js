@@ -15,7 +15,12 @@ const itemSchema = new mongoose.Schema({
   name: String,
   price: String,
   added: Date,
-  mainPhoto: String
+  photos: [
+    {
+      url: String,
+      id: String
+    }
+  ]
 })
 
 itemSchema.set('toJSON', {

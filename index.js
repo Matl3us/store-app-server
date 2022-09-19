@@ -6,10 +6,10 @@ const app = express()
 const multer = require('multer')
 const storage = multer.diskStorage({
   destination: function (request, file, cb) {
-    cb(null, 'uploads/')
+    cb(null, 'tmp/')
   },
   filename: function (request, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    const uniqueSuffix = Math.round(Math.random() * 1E9)
     cb(null, file.fieldname + '-' + uniqueSuffix + '.png')
   }
 })
@@ -18,6 +18,9 @@ const storage = multer.diskStorage({
 const dotenv = require('dotenv')
 dotenv.config()
 
+//Fs
+const fs = require('fs')
+
 //Cloudinary
 const cloudinary = require('cloudinary').v2
 cloudinary.config({
@@ -25,6 +28,7 @@ cloudinary.config({
   api_key: process.env.API_KEY,
   api_secret: process.env.API_SECRET
 })
+const upload = multer({ storage })
 
 //Models import
 const Item = require('./models/item')
@@ -57,43 +61,47 @@ app.get('/api/items/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-//Post new items
-const upload = multer({ storage }).single('image')
-app.post('/api/items', (req, res) => {
-  upload(req, res, (err) => {
-    if (err) {
-      return res.send(err)
-    }
-    const body = req.body
-    const path = req.file.path
-    const uniqueFilename = new Date().toISOString()
-
-    cloudinary.uploader.upload(
-      path,
-      { public_id: `images/${uniqueFilename}` }, 
-      (err, image) => {
-        if (err)
-          return res.send(err)
-
-        const fs = require('fs')
-        fs.unlinkSync(path)
-        
-        const item = new Item({
-          name: body.name,
-          price: body.price,
-          added: new Date(),
-          mainPhoto: image.secure_url
-        })
-
-        console.log(item)
-
-        item.save().then(savedItem => {
-          res.json(savedItem)
-        })
-
-      }
-    )
+//Image upload
+const cloudinaryImageUpload = async file => {
+  return new Promise(resolve => {
+      cloudinary.uploader.upload( file , (err, result) => {
+        if (err) return result.status(500).send("upload image error")
+          resolve({
+            url: result.secure_url,
+            id: result.public_id
+          }) 
+        }
+      ) 
   })
+}
+
+//Post new items
+app.post('/api/items', upload.array('images', 8), async (req, res) => {
+
+  const urls = []
+  const body = req.body
+  const files = req.files
+
+  for (const file of files) {
+    const { path } = file
+    const newPath = await cloudinaryImageUpload(path)
+    urls.push(newPath)
+    fs.unlinkSync(path)
+  }
+
+  const item = new Item({
+    name: body.name,
+    price: body.price,
+    added: new Date(),
+    photos: urls
+  })
+
+  console.log(item)
+
+  item.save().then(savedItem => {
+    res.json(savedItem)
+  })
+
 })
 
 //Edit existing item
