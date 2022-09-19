@@ -68,7 +68,7 @@ const cloudinaryImageUpload = async file => {
       if (err) return result.status(500).send("upload image error")
       resolve({
         url: result.secure_url,
-        id: result.public_id
+        photo_id: result.public_id
       })
     }
     )
@@ -96,52 +96,65 @@ app.post('/api/items', upload.array('images', 8), async (req, res, next) => {
     photos: urls
   })
 
-  console.log(item)
-
   item.save().then(savedItem => {
     res.json(savedItem)
   })
-  .catch(error => next(error))
+    .catch(error => next(error))
 
 })
 
 //Edit existing item
 app.put('/api/items/:id', upload.array('images', 8), async (request, response, next) => {
 
-  const urls = []
-  const body = req.body
-  const files = req.files
+  const body = request.body
+  const files = request.files
 
+  Item.findById(request.params.id)
+    .then(async item => {
+      const idList = []
+      if (item) {
+        for (const photo of body.photos) {
+          idList.push(photo.photo_id)
+        }
+        item.photos.forEach((currentValue) => {
+          if (!idList.includes(currentValue.photo_id)) {
+            cloudinary.uploader.destroy(currentValue.photo_id)
+          }
+        })
 
+        for (const file of files) {
+          const { path } = file
+          const newPath = await cloudinaryImageUpload(path)
+          body.photos.push(newPath)
+          fs.unlinkSync(path)
+        }
 
-  for (const file of files) {
-    const { path } = file
-    const newPath = await cloudinaryImageUpload(path)
-    urls.push(newPath)
-    fs.unlinkSync(path)
-  }
+        const item = {
+          name: body.name,
+          price: body.price,
+          photos: body.photos
+        }
 
-  const item = new Item({
-    name: body.name,
-    price: body.price,
-    added: new Date(),
-    photos: urls
-  })
-
-  console.log(item)
-
-  Item.findByIdAndUpdate(request.params.id, item, { new: true })
-    .then(updatedItem => {
-      response.json(updatedItem)
+        Item.findByIdAndUpdate(request.params.id, item, { new: true })
+          .then(updatedItem => {
+            response.json(updatedItem)
+          })
+          .catch(error => next(error))
+      } else {
+        response.status(404).end()
+      }
     })
-    .catch(error => next(error))
+    .catch(error => {
+      files.forEach(({ path }) => fs.unlinkSync(path))
+      next(error)
+    })
 })
 
 //Delete item
 app.delete('/api/items/:id', (request, response, next) => {
   Item.findByIdAndRemove(request.params.id)
     .then(result => {
-      result.photos.every((currentValue) => cloudinary.uploader.destroy(currentValue.id))
+      result.photos.every((currentValue) => cloudinary.uploader.destroy(currentValue.photo_id))
       response.status(204).end()
     })
     .catch(error => next(error))

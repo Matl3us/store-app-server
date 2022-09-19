@@ -18,7 +18,7 @@ const itemSchema = new mongoose.Schema({
   photos: [
     {
       url: String,
-      id: String
+      photo_id: String
     }
   ]
 })
@@ -28,6 +28,7 @@ itemSchema.set('toJSON', {
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
+    returnedObject.photos.every((currentValue => delete currentValue._id))
   }
 })
 
