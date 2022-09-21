@@ -1,16 +1,32 @@
 const itemRouter = require('express').Router()
+
 const Item = require('../models/item')
 const User = require('../models/user')
+
 const cloudinary = require('../utils/cloudinary')
+const config = require('../utils/config')
+
+const jwt = require('jsonwebtoken')
 const fs = require('fs')
+
+
+const getTokenFrom = request => {
+    const authorization = request.get('authorization')
+    if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+        return authorization.substring(7)
+    }
+    return null
+}
 
 itemRouter.get('/', async (request, response) => {
     const items = await Item
-        .find({}).populate('user', { username: 1, name: 1 })
+        .find({})
+        .populate('user', { username: 1, name: 1 })
+        
     response.json(items)
 })
 
-itemRouter.get('/:id', (request, response, next) => {
+itemRouter.get('/:id', async (request, response, next) => {
     Item.findById(request.params.id)
         .then(item => {
             if (item) {
@@ -28,7 +44,18 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
     const body = request.body
     const files = request.files
 
-    const user = await User.findById(body.userId)
+    const token = getTokenFrom(request)
+
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET)
+    } catch (exception) {
+        next(exception)
+    }
+
+    if (!decodedToken.id) {
+        return response.status(401).json({ error: 'token missing or invalid' })
+    }
+    const user = await User.findById(decodedToken.id)
 
     for (const file of files) {
         const { path } = file
