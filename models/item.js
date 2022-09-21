@@ -9,7 +9,11 @@ const itemSchema = new mongoose.Schema({
       url: String,
       photo_id: String
     }
-  ]
+  ],
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 })
 
 itemSchema.set('toJSON', {

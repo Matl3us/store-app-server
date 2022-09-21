@@ -1,12 +1,13 @@
 const itemRouter = require('express').Router()
 const Item = require('../models/item')
+const User = require('../models/user')
 const cloudinary = require('../utils/cloudinary')
 const fs = require('fs')
 
-itemRouter.get('/', (request, response) => {
-    Item.find({}).then(items => {
-        response.json(items)
-    })
+itemRouter.get('/', async (request, response) => {
+    const items = await Item
+        .find({}).populate('user', { username: 1, name: 1 })
+    response.json(items)
 })
 
 itemRouter.get('/:id', (request, response, next) => {
@@ -27,6 +28,8 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
     const body = request.body
     const files = request.files
 
+    const user = await User.findById(body.userId)
+
     for (const file of files) {
         const { path } = file
         const newPath = await cloudinary.cloudinaryImageUpload(path)
@@ -38,14 +41,15 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
         name: body.name,
         price: body.price,
         added: new Date(),
-        photos: urls
+        photos: urls,
+        user: user._id
     })
 
-    item.save().then(savedItem => {
-        response.json(savedItem)
-    })
-        .catch(error => next(error))
+    const savedItem = await item.save()
+    user.items = user.items.concat(savedItem._id)
+    await user.save()
 
+    response.json(savedItem)
 })
 
 itemRouter.put('/:id', cloudinary.upload.array('images', 8), async (request, response, next) => {
