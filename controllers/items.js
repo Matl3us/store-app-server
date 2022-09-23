@@ -43,11 +43,12 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
     const urls = []
     const body = request.body
     const files = request.files
+    let decodedToken = null
 
     const token = getTokenFrom(request)
 
     try {
-        const decodedToken = jwt.verify(token, config.SECRET)
+        decodedToken = jwt.verify(token, config.SECRET)
     } catch (exception) {
         next(exception)
     }
