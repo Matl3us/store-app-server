@@ -19,10 +19,10 @@ const getTokenFrom = request => {
 }
 
 itemRouter.get('/', async (request, response) => {
+    const categoryName = request.query.category
     const items = await Item
-        .find({})
-        .populate('user', { username: 1, name: 1 })
-        
+        .find({ category: categoryName }, { user: 0 })
+
     response.json(items)
 })
 
@@ -58,26 +58,37 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
     }
     const user = await User.findById(decodedToken.id)
 
-    for (const file of files) {
-        const { path } = file
-        const newPath = await cloudinary.cloudinaryImageUpload(path)
-        urls.push(newPath)
-        fs.unlinkSync(path)
+    if (user) {
+        for (const file of files) {
+            const { path } = file
+            const newPath = await cloudinary.cloudinaryImageUpload(path)
+            urls.push(newPath)
+            fs.unlinkSync(path)
+        }
+
+        const item = new Item({
+            name: body.name,
+            price: body.price,
+            added: new Date(),
+            category: body.category,
+            photos: urls,
+            user: user._id
+        })
+
+        const savedItem = await item.save()
+        user.items = user.items.concat(savedItem._id)
+        await user.save()
+
+        response.json(savedItem)
+    }
+    else {
+        for (const file of files) {
+            const { path } = file
+            fs.unlinkSync(path)
+        }
+        response.status(403).end()
     }
 
-    const item = new Item({
-        name: body.name,
-        price: body.price,
-        added: new Date(),
-        photos: urls,
-        user: user._id
-    })
-
-    const savedItem = await item.save()
-    user.items = user.items.concat(savedItem._id)
-    await user.save()
-
-    response.json(savedItem)
 })
 
 itemRouter.put('/:id', cloudinary.upload.array('images', 8), async (request, response, next) => {
