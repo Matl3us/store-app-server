@@ -1,4 +1,4 @@
-# fly.toml file generated for store-app-server on 2022-09-19T17:22:01+02:00
+# fly.toml file generated for store-app-server on 2022-09-29T20:26:10+02:00
 
 app = "store-app-server"
 kill_signal = "SIGINT"
