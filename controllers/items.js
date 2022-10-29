@@ -43,51 +43,29 @@ itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, respo
     const urls = []
     const body = request.body
     const files = request.files
-    let decodedToken = null
 
-    const token = getTokenFrom(request)
-
-    try {
-        decodedToken = jwt.verify(token, config.SECRET)
-    } catch (exception) {
-        next(exception)
+    for (const file of files) {
+        const { path } = file
+        const newPath = await cloudinary.cloudinaryImageUpload(path)
+        urls.push(newPath)
+        fs.unlinkSync(path)
     }
 
-    if (!decodedToken.id) {
-        return response.status(401).json({ error: 'token missing or invalid' })
-    }
-    const user = await User.findById(decodedToken.id)
+    const item = new Item({
+        name: body.name,
+        price: body.price,
+        added: new Date(),
+        category: body.category,
+        photos: urls,
+        user: null
+    })
 
-    if (user) {
-        for (const file of files) {
-            const { path } = file
-            const newPath = await cloudinary.cloudinaryImageUpload(path)
-            urls.push(newPath)
-            fs.unlinkSync(path)
-        }
+    const savedItem = await item.save()
+    //user.items = user.items.concat(savedItem._id)
+    //await user.save()
 
-        const item = new Item({
-            name: body.name,
-            price: body.price,
-            added: new Date(),
-            category: body.category,
-            photos: urls,
-            user: user._id
-        })
+    response.json(savedItem)
 
-        const savedItem = await item.save()
-        user.items = user.items.concat(savedItem._id)
-        await user.save()
-
-        response.json(savedItem)
-    }
-    else {
-        for (const file of files) {
-            const { path } = file
-            fs.unlinkSync(path)
-        }
-        response.status(403).end()
-    }
 
 })
 
