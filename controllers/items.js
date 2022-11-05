@@ -18,6 +18,26 @@ const getTokenFrom = request => {
     return null
 }
 
+itemRouter.get('/user', async (request, response, next) => {
+    console.log(JSON.stringify(request.headers));
+    const token = getTokenFrom(request)
+
+    if (!token) {
+        return response.status(401).json({ error: 'token missing or invalid' })
+    }
+
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET);
+        const user = await User
+            .findById(decodedToken.id)
+            .populate('items', { name: 1, price: 1, added: 1, photos: 1 })
+        response.json(user)
+    }
+    catch (exception) {
+        next(exception);
+    }
+})
+
 itemRouter.get('/', async (request, response) => {
     const categoryName = request.query.category
     const items = await Item
@@ -39,33 +59,55 @@ itemRouter.get('/:id', async (request, response, next) => {
 })
 
 itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, response, next) => {
-
+    console.log(JSON.stringify(request.headers));
     const urls = []
     const body = request.body
     const files = request.files
+    const token = getTokenFrom(request)
+    let user = null
 
-    for (const file of files) {
-        const { path } = file
-        const newPath = await cloudinary.cloudinaryImageUpload(path)
-        urls.push(newPath)
-        fs.unlinkSync(path)
+    if (!token) {
+        return response.status(401).json({ error: 'token missing or invalid' })
     }
 
-    const item = new Item({
-        name: body.name,
-        price: body.price,
-        added: new Date(),
-        category: body.category,
-        photos: urls,
-        user: null
-    })
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET);
+        user = await User.findById(decodedToken.id);
+    }
+    catch (exception) {
+        next(exception);
+    }
 
-    const savedItem = await item.save()
-    //user.items = user.items.concat(savedItem._id)
-    //await user.save()
+    if (user) {
+        for (const file of files) {
+            const { path } = file
+            const newPath = await cloudinary.cloudinaryImageUpload(path)
+            urls.push(newPath)
+            fs.unlinkSync(path)
+        }
 
-    response.json(savedItem)
+        const item = new Item({
+            name: body.name,
+            price: body.price,
+            added: new Date(),
+            category: body.category,
+            photos: urls,
+            user: user._id
+        })
 
+        const savedItem = await item.save()
+        user.items = user.items.concat(savedItem._id)
+        await user.save()
+
+        response.json(savedItem)
+    }
+    else {
+        for (const file of files) {
+            const { path } = file
+            fs.unlinkSync(path)
+        }
+        response.status(403).end()
+    }
 
 })
 
