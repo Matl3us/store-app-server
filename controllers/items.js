@@ -5,21 +5,21 @@ const User = require('../models/user')
 
 const cloudinary = require('../utils/cloudinary')
 const config = require('../utils/config')
+const cors = require('cors')
 
 const jwt = require('jsonwebtoken')
 const fs = require('fs')
 
 
 const getTokenFrom = request => {
-    const authorization = request.get('authorization')
+    const authorization = request.query.token
     if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
         return authorization.substring(7)
     }
     return null
 }
 
-itemRouter.get('/user', async (request, response, next) => {
-    console.log(JSON.stringify(request.headers));
+itemRouter.get('/user', cors(), async (request, response, next) => {
     const token = getTokenFrom(request)
 
     if (!token) {
@@ -58,8 +58,7 @@ itemRouter.get('/:id', async (request, response, next) => {
         .catch(error => next(error))
 })
 
-itemRouter.post('/', cloudinary.upload.array('images', 8), async (request, response, next) => {
-    console.log(JSON.stringify(request.headers));
+itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (request, response, next) => {
     const urls = []
     const body = request.body
     const files = request.files
@@ -158,6 +157,7 @@ itemRouter.put('/:id', cloudinary.upload.array('images', 8), async (request, res
 })
 
 itemRouter.delete('/:id', (request, response, next) => {
+    console.log(request.params.id);
     Item.findByIdAndRemove(request.params.id)
         .then(result => {
             result.photos.every((currentValue) => cloudinary.cloudinaryImageDeletion(currentValue.photo_id))
