@@ -9,7 +9,6 @@ const cors = require('cors')
 
 const jwt = require('jsonwebtoken')
 const fs = require('fs')
-const { BADFAMILY } = require('dns')
 
 
 const getTokenFrom = request => {

@@ -10,7 +10,7 @@ usersRouter.get('/', async (request, response) => {
 })
 
 usersRouter.post('/', cloudinary.upload.none(), async (request, response) => {
-    const { username, name, password } = request.body
+    const { username, email, password } = request.body
 
     const existingUser = await User.findOne({ username })
     if (existingUser) {
@@ -24,7 +24,7 @@ usersRouter.post('/', cloudinary.upload.none(), async (request, response) => {
 
     const user = new User({
         username,
-        name,
+        email,
         passwordHash,
     })
 
