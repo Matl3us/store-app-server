@@ -9,6 +9,7 @@ const cors = require('cors')
 
 const jwt = require('jsonwebtoken')
 const fs = require('fs')
+const { BADFAMILY } = require('dns')
 
 
 const getTokenFrom = request => {
@@ -90,6 +91,8 @@ itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (reques
             price: body.price,
             added: new Date(),
             category: body.category,
+            description: body.description,
+            amount: body.amount,
             photos: urls,
             user: user._id
         })
