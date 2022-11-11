@@ -30,7 +30,7 @@ itemRouter.get('/user', cors(), async (request, response, next) => {
         const decodedToken = jwt.verify(token, config.SECRET);
         const user = await User
             .findById(decodedToken.id)
-            .populate('items', { name: 1, price: 1, added: 1, photos: 1 })
+            .populate('items', { name: 1, price: 1, added: 1, photos: 1, amount: 1, description: 1 })
         response.json(user)
     }
     catch (exception) {
