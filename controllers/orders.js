@@ -17,6 +17,25 @@ const getTokenFrom = request => {
     return null
 }
 
+const updateItemAmount = async items => {
+    let itemCount = {}
+    let error = false;
+    items.forEach(item => {
+        itemCount[item] = (itemCount[item] || 0) + 1;
+    });
+    for (const [key, value] of Object.entries(itemCount)) {
+        const item = await Item.findById(key);
+        if (item.amount - value < 0) {
+            error = true;
+        }
+        else {
+            item.amount = item.amount - value;
+            item.save();
+        }
+    }
+    return error;
+}
+
 orderRouter.get('/owner', async (request, response, next) => {
     const token = getTokenFrom(request)
 
@@ -66,7 +85,7 @@ orderRouter.get('/received', async (request, response, next) => {
                 '$group': {
                     '_id': '$_id',
                     'added': { '$first': '$added' },
-                    'orderedItems': {'$push': '$result' },
+                    'orderedItems': { '$push': '$result' },
                     'firstName': { '$first': '$firstName' },
                     'lastName': { '$first': '$lastName' },
                     'address': { '$first': '$address' },
@@ -84,25 +103,46 @@ orderRouter.get('/received', async (request, response, next) => {
     }
 })
 
-orderRouter.post('/', async (request, response, next) => {
+orderRouter.post('/', async (request, response) => {
     const body = request.body
     const token = getTokenFrom(request)
     let user = null
-
-    if (!token) {
-        return response.status(401).json({ error: 'token missing or invalid' })
-    }
 
     try {
         const decodedToken = jwt.verify(token, config.SECRET);
         user = await User.findById(decodedToken.id);
     }
-    catch (exception) {
-        next(exception);
+    catch {
+        await body.items.map(item => mongoose.Types.ObjectId(item))
+
+        const result = await updateItemAmount(body.items)
+        if (result) {
+            return response.status(401).json({ error: 'trying to buy more items than is available' })
+        }
+
+        const order = new Order({
+            added: new Date(),
+            firstName: body.firstName,
+            lastName: body.lastName,
+            address: body.address,
+            zipCode: body.zipCode,
+            city: body.city,
+            owner: null,
+            items: body.items
+        })
+
+        const savedOrder = await order.save()
+
+        response.json(savedOrder)
     }
 
     if (user) {
         await body.items.map(item => mongoose.Types.ObjectId(item))
+
+        const result = await updateItemAmount(body.items)
+        if (result) {
+            return response.status(401).json({ error: 'trying to buy more items than is available' })
+        }
 
         const order = new Order({
             added: new Date(),
@@ -120,10 +160,7 @@ orderRouter.post('/', async (request, response, next) => {
         await user.save()
 
         response.json(savedOrder)
-    } else {
-        response.status(403).end()
     }
-
 })
 
 module.exports = orderRouter;
