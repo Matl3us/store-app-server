@@ -41,7 +41,7 @@ itemRouter.get('/user', cors(), async (request, response, next) => {
 itemRouter.get('/', async (request, response) => {
     const categoryName = request.query.category
     const items = await Item
-        .find({ category: categoryName }, { user: 0 })
+        .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
 
     response.json(items)
 })
