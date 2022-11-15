@@ -3,6 +3,34 @@ const User = require('../models/user')
 const cloudinary = require('../utils/cloudinary')
 const bcrypt = require('bcrypt')
 
+const jwt = require('jsonwebtoken')
+const config = require('../utils/config')
+
+const getTokenFrom = request => {
+    const authorization = request.query.token
+    if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+        return authorization.substring(7)
+    }
+    return null
+}
+
+usersRouter.get('/user', async (request, response, next) => {
+    const token = getTokenFrom(request)
+
+    if (!token) {
+        return response.status(401).json({ error: 'token missing or invalid' })
+    }
+
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET);
+        const user = await User.findById(decodedToken.id, { username: 1, email: 1 });
+        response.json(user)
+    }
+    catch (exception) {
+        next(exception);
+    }
+})
+
 usersRouter.get('/', async (request, response) => {
     const users = await User
         .find({}).populate('items', { name: 1, price: 1, added: 1, photos: 1 })
