@@ -53,7 +53,7 @@ orderRouter.get('/owner', async (request, response, next) => {
     try {
         const decodedToken = jwt.verify(token, config.SECRET);
         const order = await Order
-            .find({ _id: decodedToken.id })
+            .find({ owner: decodedToken.id })
             .populate('items', { name: 1, price: 1, photos: 1, description: 1 })
         response.json(order)
     }
