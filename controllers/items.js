@@ -90,6 +90,7 @@ itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (reques
             price: body.price,
             added: new Date(),
             category: body.category,
+            subcategory: body.subcategory,
             description: body.description,
             amount: body.amount,
             photos: urls,

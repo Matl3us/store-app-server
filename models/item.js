@@ -5,6 +5,7 @@ const itemSchema = new mongoose.Schema({
   price: String,
   added: Date,
   category: String,
+  subcategory: String,
   description: String,
   amount: Number,
   photos: [

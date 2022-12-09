@@ -2,7 +2,12 @@ const mongoose = require('mongoose')
 
 const categorySchema = new mongoose.Schema({
   name: String,
-  icon: String
+  icon: String,
+  subcategories: [
+    {
+      name: String
+    }
+  ]
 })
 
 categorySchema.set('toJSON', {

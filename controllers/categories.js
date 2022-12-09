@@ -8,11 +8,16 @@ categoryRouter.get('/', async (request, response) => {
 })
 
 categoryRouter.post('/', async (request, response) => {
-    const { name, icon } = request.body
+    const { name, icon, subcategories } = request.body
+
+    const subcategoriesArray = subcategories.map(element => (
+        { name: element }
+    ))
 
     const category = new Category({
         name,
         icon,
+        subcategories: subcategoriesArray
     })
 
     const savedCategory = await category.save()
