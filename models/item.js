@@ -8,6 +8,7 @@ const itemSchema = new mongoose.Schema({
   subcategory: String,
   description: String,
   amount: Number,
+  bought: Number,
   photos: [
     {
       url: String,

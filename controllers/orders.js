@@ -30,6 +30,7 @@ const updateItemAmount = async items => {
         }
         else {
             item.amount = item.amount - value;
+            item.bought = item.bought + value;
             item.save();
         }
     }

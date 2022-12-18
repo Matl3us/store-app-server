@@ -39,23 +39,63 @@ itemRouter.get('/user', cors(), async (request, response, next) => {
 })
 
 itemRouter.get('/', async (request, response) => {
-    const categoryName = request.query.category
-    const items = await Item
-        .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+    const categoryName = request.query.category;
+    const filter = request.query.filter;
+    const sort = request.query.sort;
+    let items = null;
+    if (filter !== undefined) {
+        if (sort === 'DateUp') {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ added: 1 });
+        } else if (sort === 'DateDown') {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ added: -1 });
+        } else if (sort === 'PriceUp') {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ price: -1 });
+        } else if (sort === 'PriceDown') {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ price: 1 });
+        } else if (sort === 'PopularityUp') {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ bought: -1 });
+        } else {
+            items = await Item
+                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 });
+        }
+    } else {
+        if (sort === 'DateUp') {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ added: 1 });
+        } else if (sort === 'DateDown') {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ added: -1 });
+        } else if (sort === 'PriceUp') {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ price: -1 });
+        } else if (sort === 'PriceDown') {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ price: 1 });
+        } else if (sort === 'PopularityUp') {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
+                .sort({ bought: -1 });
+        } else {
+            items = await Item
+                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 });
+        }
+    }
 
     response.json(items)
-})
-
-itemRouter.get('/:id', async (request, response, next) => {
-    Item.findById(request.params.id)
-        .then(item => {
-            if (item) {
-                response.json(item)
-            } else {
-                response.status(404).end()
-            }
-        })
-        .catch(error => next(error))
 })
 
 itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (request, response, next) => {
@@ -93,9 +133,10 @@ itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (reques
             subcategory: body.subcategory,
             description: body.description,
             amount: body.amount,
+            bought: 0,
             photos: urls,
             user: user._id
-        })
+        });
 
         const savedItem = await item.save()
         user.items = user.items.concat(savedItem._id)
@@ -167,6 +208,15 @@ itemRouter.delete('/:id', (request, response, next) => {
             response.status(204).end()
         })
         .catch(error => next(error))
+})
+
+itemRouter.get('/:id', async (request, response, next) => {
+
+    const token = request.headers.authorization;
+
+    console.log(token);
+
+    response.status(404).end();
 })
 
 module.exports = itemRouter
