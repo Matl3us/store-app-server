@@ -98,6 +98,18 @@ itemRouter.get('/', async (request, response) => {
     response.json(items)
 })
 
+itemRouter.get('/:id', async (request, response, next) => {
+    Item.findById(request.params.id)
+        .then(item => {
+            if (item) {
+                response.json(item)
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
+})
+
 itemRouter.post('/', cors(), cloudinary.upload.array('images', 8), async (request, response, next) => {
     const urls = []
     const body = request.body
@@ -208,15 +220,6 @@ itemRouter.delete('/:id', (request, response, next) => {
             response.status(204).end()
         })
         .catch(error => next(error))
-})
-
-itemRouter.get('/:id', async (request, response, next) => {
-
-    const token = request.headers.authorization;
-
-    console.log(token);
-
-    response.status(404).end();
 })
 
 module.exports = itemRouter
