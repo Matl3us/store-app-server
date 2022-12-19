@@ -2,6 +2,7 @@ const itemRouter = require('express').Router()
 
 const Item = require('../models/item')
 const User = require('../models/user')
+const Category = require('../models/category')
 
 const cloudinary = require('../utils/cloudinary')
 const config = require('../utils/config')
@@ -47,11 +48,11 @@ itemRouter.get('/', async (request, response) => {
         if (sort === 'DateUp') {
             items = await Item
                 .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: 1 });
+                .sort({ added: -1 });
         } else if (sort === 'DateDown') {
             items = await Item
                 .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: -1 });
+                .sort({ added: 1 });
         } else if (sort === 'PriceUp') {
             items = await Item
                 .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
@@ -72,11 +73,11 @@ itemRouter.get('/', async (request, response) => {
         if (sort === 'DateUp') {
             items = await Item
                 .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: 1 });
+                .sort({ added: -1 });
         } else if (sort === 'DateDown') {
             items = await Item
                 .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: -1 });
+                .sort({ added: 1 });
         } else if (sort === 'PriceUp') {
             items = await Item
                 .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
@@ -96,6 +97,22 @@ itemRouter.get('/', async (request, response) => {
     }
 
     response.json(items)
+})
+
+itemRouter.get('/search', async (request, response) => {
+
+    const searchQuery = request.query.searchQuery;
+    const regex = new RegExp(searchQuery, 'i');
+
+    const items = await Item.find({ amount: { $gt: 0 }, name: { $regex: regex } }, { user: 0 });
+    const categories = await Category.find({ name: { $regex: regex } });
+
+    const result = {
+        items: items,
+        categories:categories
+    };
+
+    response.json(result);
 })
 
 itemRouter.get('/:id', async (request, response, next) => {
