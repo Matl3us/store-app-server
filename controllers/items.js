@@ -39,80 +39,142 @@ itemRouter.get('/user', cors(), async (request, response, next) => {
     }
 })
 
-itemRouter.get('/', async (request, response) => {
+itemRouter.get('/', async (request, response, next) => {
     const categoryName = request.query.category;
     const filter = request.query.filter;
     const sort = request.query.sort;
     let items = null;
-    if (filter !== undefined) {
-        if (sort === 'DateUp') {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: -1 });
-        } else if (sort === 'DateDown') {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: 1 });
-        } else if (sort === 'PriceUp') {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ price: -1 });
-        } else if (sort === 'PriceDown') {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ price: 1 });
-        } else if (sort === 'PopularityUp') {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ bought: -1 });
-        } else {
-            items = await Item
-                .find({ category: categoryName, subcategory: filter, amount: { $gt: 0 } }, { user: 0 });
-        }
-    } else {
-        if (sort === 'DateUp') {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: -1 });
-        } else if (sort === 'DateDown') {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ added: 1 });
-        } else if (sort === 'PriceUp') {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ price: -1 });
-        } else if (sort === 'PriceDown') {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ price: 1 });
-        } else if (sort === 'PopularityUp') {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 })
-                .sort({ bought: -1 });
-        } else {
-            items = await Item
-                .find({ category: categoryName, amount: { $gt: 0 } }, { user: 0 });
-        }
+    const token = getTokenFrom(request)
+
+    if (!token) {
+        return response.status(401).json({ error: 'token missing or invalid' })
     }
 
-    response.json(items)
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET);
+        if (filter !== undefined) {
+            if (sort === 'DateUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ added: -1 });
+            } else if (sort === 'DateDown') {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ added: 1 });
+            } else if (sort === 'PriceUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ price: -1 });
+            } else if (sort === 'PriceDown') {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ price: 1 });
+            } else if (sort === 'PopularityUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ bought: -1 });
+            } else {
+                items = await Item
+                    .find({
+                        category: categoryName, subcategory: filter,
+                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
+                    }, { user: 0 });
+            }
+        } else {
+            if (sort === 'DateUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ added: -1 });
+            } else if (sort === 'DateDown') {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ added: 1 });
+            } else if (sort === 'PriceUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ price: -1 });
+            } else if (sort === 'PriceDown') {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ price: 1 });
+            } else if (sort === 'PopularityUp') {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 })
+                    .sort({ bought: -1 });
+            } else {
+                items = await Item
+                    .find({
+                        category: categoryName, amount: { $gt: 0 },
+                        user: { $ne: decodedToken.id }
+                    }, { user: 0 });
+            }
+        }
+        response.json(items)
+    }
+    catch (exception) {
+        next(exception);
+    }
 })
 
-itemRouter.get('/search', async (request, response) => {
+itemRouter.get('/search', async (request, response, next) => {
 
     const searchQuery = request.query.searchQuery;
     const regex = new RegExp(searchQuery, 'i');
 
-    const items = await Item.find({ amount: { $gt: 0 }, name: { $regex: regex } }, { user: 0 });
-    const categories = await Category.find({ name: { $regex: regex } });
+    const token = getTokenFrom(request)
 
-    const result = {
-        items: items,
-        categories:categories
-    };
+    if (!token) {
+        return response.status(401).json({ error: 'token missing or invalid' })
+    }
 
-    response.json(result);
+    try {
+        const decodedToken = jwt.verify(token, config.SECRET);
+        const items = await Item.find({
+            amount: { $gt: 0 }, name: { $regex: regex },
+            user: { $ne: decodedToken.id }
+        }, { user: 0 });
+        const categories = await Category.find({ name: { $regex: regex } });
+
+        const result = {
+            items: items,
+            categories: categories
+        };
+
+        response.json(result);
+    }
+    catch (exception) {
+        next(exception);
+    }
 })
 
 itemRouter.get('/:id', async (request, response, next) => {
