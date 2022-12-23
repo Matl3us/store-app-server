@@ -43,106 +43,89 @@ itemRouter.get('/', async (request, response, next) => {
     const categoryName = request.query.category;
     const filter = request.query.filter;
     const sort = request.query.sort;
-    let items = null;
     const token = getTokenFrom(request)
+    let items = null;
 
-    if (!token) {
-        return response.status(401).json({ error: 'token missing or invalid' })
-    }
+    let params = {
+        category: categoryName,
+        amount: { $gt: 0 },
+    };
 
-    try {
-        const decodedToken = jwt.verify(token, config.SECRET);
-        if (filter !== undefined) {
-            if (sort === 'DateUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ added: -1 });
-            } else if (sort === 'DateDown') {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ added: 1 });
-            } else if (sort === 'PriceUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ price: -1 });
-            } else if (sort === 'PriceDown') {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ price: 1 });
-            } else if (sort === 'PopularityUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ bought: -1 });
-            } else {
-                items = await Item
-                    .find({
-                        category: categoryName, subcategory: filter,
-                        amount: { $gt: 0 }, user: { $ne: decodedToken.id }
-                    }, { user: 0 });
+    if (token) {
+        try {
+            const decodedToken = jwt.verify(token, config.SECRET);
+            params.user = { $ne: decodedToken.id };
+
+            if (filter != null) {
+                params.subcategory = filter;
             }
-        } else {
-            if (sort === 'DateUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ added: -1 });
-            } else if (sort === 'DateDown') {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ added: 1 });
-            } else if (sort === 'PriceUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ price: -1 });
-            } else if (sort === 'PriceDown') {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ price: 1 });
-            } else if (sort === 'PopularityUp') {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 })
-                    .sort({ bought: -1 });
-            } else {
-                items = await Item
-                    .find({
-                        category: categoryName, amount: { $gt: 0 },
-                        user: { $ne: decodedToken.id }
-                    }, { user: 0 });
+
+            switch (sort) {
+                case 'DateUp':
+                    items = await Item
+                        .find(params, { user: 0 }).sort({ added: -1 });
+                    break;
+                case 'DateDown':
+                    items = await Item
+                        .find(params, { user: 0 }).sort({ added: 1 });
+                    break;
+                case 'PriceUp':
+                    items = await Item
+                        .find(params, { user: 0 }).sort({ price: -1 });
+                    break;
+                case 'PriceDown':
+                    items = await Item
+                        .find(params, { user: 0 }).sort({ price: 1 });
+                    break;
+                case 'PopularityUp':
+                    items = await Item
+                        .find(params, { user: 0 }).sort({ bought: -1 });
+                    break;
+                default:
+                    items = await Item
+                        .find(params, { user: 0 });
+                    break;
             }
+
+            response.json(items)
         }
-        response.json(items)
+        catch (exception) {
+            next(exception);
+        }
     }
-    catch (exception) {
-        next(exception);
+    else {
+        if (filter != null) {
+            params.subcategory = filter;
+        }
+
+        switch (sort) {
+            case 'DateUp':
+                items = await Item
+                    .find(params, { user: 0 }).sort({ added: -1 });
+                break;
+            case 'DateDown':
+                items = await Item
+                    .find(params, { user: 0 }).sort({ added: 1 });
+                break;
+            case 'PriceUp':
+                items = await Item
+                    .find(params, { user: 0 }).sort({ price: -1 });
+                break;
+            case 'PriceDown':
+                items = await Item
+                    .find(params, { user: 0 }).sort({ price: 1 });
+                break;
+            case 'PopularityUp':
+                items = await Item
+                    .find(params, { user: 0 }).sort({ bought: -1 });
+                break;
+            default:
+                items = await Item
+                    .find(params, { user: 0 });
+                break;
+        }
+
+        response.json(items)
     }
 })
 

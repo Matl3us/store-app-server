@@ -8,7 +8,7 @@ categoryRouter.get('/', async (request, response) => {
 })
 
 categoryRouter.post('/', async (request, response) => {
-    const { name, icon, subcategories } = request.body
+    const { name, icon, color, subcategories } = request.body
 
     const subcategoriesArray = subcategories.map(element => (
         { name: element }
@@ -17,6 +17,7 @@ categoryRouter.post('/', async (request, response) => {
     const category = new Category({
         name,
         icon,
+        color,
         subcategories: subcategoriesArray
     })
 
