@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema({
   name: String,
@@ -6,17 +6,17 @@ const categorySchema = new mongoose.Schema({
   color: String,
   subcategories: [
     {
-      name: String
-    }
-  ]
-})
+      name: String,
+    },
+  ],
+});
 
-categorySchema.set('toJSON', {
+categorySchema.set("toJSON", {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-  }
-})
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+  },
+});
 
-module.exports = mongoose.model('Category', categorySchema)
+module.exports = mongoose.model("Category", categorySchema);

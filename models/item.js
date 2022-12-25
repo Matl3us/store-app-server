@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 const itemSchema = new mongoose.Schema({
   name: String,
@@ -12,22 +12,22 @@ const itemSchema = new mongoose.Schema({
   photos: [
     {
       url: String,
-      photo_id: String
-    }
+      photo_id: String,
+    },
   ],
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
-})
+    ref: "User",
+  },
+});
 
-itemSchema.set('toJSON', {
+itemSchema.set("toJSON", {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-    returnedObject.photos.every((currentValue => delete currentValue._id))
-  }
-})
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+    returnedObject.photos.every((currentValue) => delete currentValue._id);
+  },
+});
 
-module.exports = mongoose.model('Item', itemSchema)
+module.exports = mongoose.model("Item", itemSchema);
