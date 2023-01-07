@@ -228,45 +228,57 @@ itemRouter.put(
     const body = request.body;
     const files = request.files;
 
-    Item.findById(request.params.id)
-      .then(async (item) => {
-        const idList = [];
-        if (item) {
-          for (const photo of body.photos) {
-            idList.push(photo.photo_id);
+    if (files) {
+      Item.findById(request.params.id)
+        .then(async (item) => {
+          for (const photo of item.photos) {
+            cloudinary.cloudinaryImageDeletion(photo.photo_id);
           }
-          item.photos.forEach((currentValue) => {
-            if (!idList.includes(currentValue.photo_id)) {
-              cloudinary.cloudinaryImageDeletion(currentValue.photo_id);
-            }
-          });
 
+          const urls = [];
           for (const file of files) {
             const { path } = file;
             const newPath = await cloudinary.cloudinaryImageUpload(path);
-            body.photos.push(newPath);
+            urls.push(newPath);
             fs.unlinkSync(path);
           }
 
-          const item = {
-            name: body.name,
-            price: body.price,
-            photos: body.photos,
-          };
-
-          Item.findByIdAndUpdate(request.params.id, item, { new: true })
-            .then((updatedItem) => {
-              response.json(updatedItem);
+          Item.findByIdAndUpdate(request.params.id, {
+            $set: {
+              name: body.name,
+              price: body.price,
+              category: body.category,
+              subcategory: body.subcategory,
+              description: body.description,
+              amount: body.amount,
+              photos: urls,
+            },
+          })
+            .then(() => {
+              response.status(200).end();
             })
             .catch((error) => next(error));
-        } else {
-          response.status(404).end();
-        }
+        })
+        .catch((error) => {
+          files.forEach(({ path }) => fs.unlinkSync(path));
+          next(error);
+        });
+    } else {
+      Item.findByIdAndUpdate(request.params.id, {
+        $set: {
+          name: body.name,
+          price: body.price,
+          category: body.category,
+          subcategory: body.subcategory,
+          description: body.description,
+          amount: body.amount,
+        },
       })
-      .catch((error) => {
-        files.forEach(({ path }) => fs.unlinkSync(path));
-        next(error);
-      });
+        .then(() => {
+          response.status(200).end();
+        })
+        .catch((error) => next(error));
+    }
   }
 );
 
