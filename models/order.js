@@ -17,8 +17,11 @@ const orderSchema = new mongoose.Schema({
   },
   items: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Item",
+      item: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Item",
+      },
+      amount: Number,
     },
   ],
 });

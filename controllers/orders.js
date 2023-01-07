@@ -17,12 +17,8 @@ const getTokenFrom = (request) => {
 };
 
 const updateItemAmount = async (items) => {
-  let itemCount = {};
   let error = false;
-  items.forEach((item) => {
-    itemCount[item] = (itemCount[item] || 0) + 1;
-  });
-  for (const [key, value] of Object.entries(itemCount)) {
+  for (const [key, value] of Object.entries(items)) {
     const item = await Item.findById(key);
     if (item.amount - value < 0) {
       error = true;
@@ -87,12 +83,15 @@ orderRouter.post("/", async (request, response) => {
   const body = request.body;
   const token = getTokenFrom(request);
   let user = null;
+  const itemsList = await body.items.map((item) =>
+    mongoose.Types.ObjectId(item)
+  );
 
   const pipeline = [
     {
       $match: {
         _id: {
-          $in: await body.items.map((item) => mongoose.Types.ObjectId(item)),
+          $in: itemsList,
         },
       },
     },
@@ -108,11 +107,16 @@ orderRouter.post("/", async (request, response) => {
 
   const items = await Item.aggregate(pipeline);
 
+  let itemCount = {};
+  body.items.forEach((item) => {
+    itemCount[item] = (itemCount[item] || 0) + 1;
+  });
+
   try {
     const decodedToken = jwt.verify(token, config.SECRET);
     user = await User.findById(decodedToken.id);
   } catch {
-    const result = await updateItemAmount(body.items);
+    const result = await updateItemAmount(itemCount);
     if (result) {
       return response
         .status(401)
@@ -120,6 +124,16 @@ orderRouter.post("/", async (request, response) => {
     }
 
     for (const item of items) {
+      const id_list = [];
+
+      for (const id of item.itemId) {
+        for (const [key, value] of Object.entries(itemCount)) {
+          if (id == key) {
+            id_list.push({ item: id, amount: value });
+          }
+        }
+      }
+
       const order = new Order({
         added: new Date(),
         firstName: body.firstName,
@@ -129,7 +143,7 @@ orderRouter.post("/", async (request, response) => {
         city: body.city,
         receiver: item._id,
         owner: null,
-        items: item.itemId,
+        items: id_list,
       });
 
       const savedOrder = order.save();
@@ -147,6 +161,16 @@ orderRouter.post("/", async (request, response) => {
     }
 
     for (const item of items) {
+      const id_list = [];
+
+      for (const id of item.itemId) {
+        for (const [key, value] of Object.entries(itemCount)) {
+          if (id == key) {
+            id_list.push({ item: id, amount: value });
+          }
+        }
+      }
+
       const order = new Order({
         added: new Date(),
         firstName: body.firstName,
@@ -156,8 +180,9 @@ orderRouter.post("/", async (request, response) => {
         city: body.city,
         receiver: item._id,
         owner: user,
-        items: item.itemId,
+        items: id_list,
       });
+
       const savedOrder = order.save();
     }
 
