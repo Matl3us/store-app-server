@@ -17,11 +17,8 @@ const orderSchema = new mongoose.Schema({
   },
   items: [
     {
-      item: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Item",
-      },
-      amount: Number,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
     },
   ],
 });
