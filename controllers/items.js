@@ -124,17 +124,33 @@ itemRouter.get("/search", async (request, response, next) => {
 
   const token = getTokenFrom(request);
 
-  if (!token) {
-    return response.status(401).json({ error: "token missing or invalid" });
-  }
+  if (token) {
+    try {
+      const decodedToken = jwt.verify(token, config.SECRET);
+      const items = await Item.find(
+        {
+          amount: { $gt: 0 },
+          name: { $regex: regex },
+          user: { $ne: decodedToken.id },
+        },
+        { user: 0 }
+      );
+      const categories = await Category.find({ name: { $regex: regex } });
 
-  try {
-    const decodedToken = jwt.verify(token, config.SECRET);
+      const result = {
+        items: items,
+        categories: categories,
+      };
+
+      response.json(result);
+    } catch (exception) {
+      next(exception);
+    }
+  } else {
     const items = await Item.find(
       {
         amount: { $gt: 0 },
         name: { $regex: regex },
-        user: { $ne: decodedToken.id },
       },
       { user: 0 }
     );
@@ -146,8 +162,6 @@ itemRouter.get("/search", async (request, response, next) => {
     };
 
     response.json(result);
-  } catch (exception) {
-    next(exception);
   }
 });
 
