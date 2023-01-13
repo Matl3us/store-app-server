@@ -242,7 +242,7 @@ itemRouter.put(
     const body = request.body;
     const files = request.files;
 
-    if (files) {
+    if (files.length !== 0) {
       Item.findById(request.params.id)
         .then(async (item) => {
           for (const photo of item.photos) {

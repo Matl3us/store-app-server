@@ -255,7 +255,7 @@ orderRouter.post("/", async (request, response) => {
         items: id_list,
       });
 
-      const savedOrder = order.save();
+      await order.save();
     }
 
     return response.status(200).json({ message: "order saved" });
@@ -291,7 +291,11 @@ orderRouter.post("/", async (request, response) => {
         owner: user,
         items: id_list,
       });
-      const savedOrder = order.save();
+
+      const savedOrder = await order.save();
+      console.log(savedOrder);
+      user.orders = user.orders.concat(savedOrder._id);
+      await user.save();
     }
 
     return response.status(200).json({ message: "order saved" });
