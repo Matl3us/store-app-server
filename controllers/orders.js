@@ -108,6 +108,11 @@ orderRouter.post("/", async (request, response) => {
 
   const items = await Item.aggregate(pipeline);
 
+  let itemCount = {};
+  body.items.forEach((item) => {
+    itemCount[item] = (itemCount[item] || 0) + 1;
+  });
+
   try {
     const decodedToken = jwt.verify(token, config.SECRET);
     user = await User.findById(decodedToken.id);
@@ -120,6 +125,16 @@ orderRouter.post("/", async (request, response) => {
     }
 
     for (const item of items) {
+      const id_list = [];
+
+      for (const id of item.itemId) {
+        for (const [key, value] of Object.entries(itemCount)) {
+          if (id == key) {
+            id_list.push({ item: id, amount: value });
+          }
+        }
+      }
+
       const order = new Order({
         added: new Date(),
         firstName: body.firstName,
@@ -129,7 +144,7 @@ orderRouter.post("/", async (request, response) => {
         city: body.city,
         receiver: item._id,
         owner: null,
-        items: item.itemId,
+        items: id_list,
       });
 
       const savedOrder = order.save();
@@ -147,6 +162,16 @@ orderRouter.post("/", async (request, response) => {
     }
 
     for (const item of items) {
+      const id_list = [];
+
+      for (const id of item.itemId) {
+        for (const [key, value] of Object.entries(itemCount)) {
+          if (id == key) {
+            id_list.push({ item: id, amount: value });
+          }
+        }
+      }
+
       const order = new Order({
         added: new Date(),
         firstName: body.firstName,
@@ -156,7 +181,7 @@ orderRouter.post("/", async (request, response) => {
         city: body.city,
         receiver: item._id,
         owner: user,
-        items: item.itemId,
+        items: id_list,
       });
       const savedOrder = order.save();
     }
