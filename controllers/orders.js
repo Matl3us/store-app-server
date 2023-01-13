@@ -54,10 +54,64 @@ orderRouter.get("/owner", async (request, response, next) => {
 
   try {
     const decodedToken = jwt.verify(token, config.SECRET);
-    const order = await Order.find({ owner: decodedToken.id }).populate(
-      "items",
-      { name: 1, price: 1, photos: 1, description: 1 }
-    );
+
+    const pipeline = [
+      {
+        $unwind: "$items",
+      },
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.item",
+          foreignField: "_id",
+          as: "result",
+        },
+      },
+      {
+        $set: {
+          "items.item": "$result",
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          firstName: {
+            $first: "$firstName",
+          },
+          lastName: {
+            $first: "$lastName",
+          },
+          address: {
+            $first: "$address",
+          },
+          zipCode: {
+            $first: "$zipCode",
+          },
+          owner: {
+            $first: "$owner",
+          },
+          receiver: {
+            $first: "$receiver",
+          },
+          city: {
+            $first: "$city",
+          },
+          items: {
+            $push: "$items",
+          },
+        },
+      },
+      {
+        $unset: "items.item.__v",
+      },
+      {
+        $match: {
+          owner: mongoose.Types.ObjectId(decodedToken.id),
+        },
+      },
+    ];
+
+    const order = await Order.aggregate(pipeline);
     response.json(order);
   } catch (exception) {
     next(exception);
@@ -73,10 +127,64 @@ orderRouter.get("/receiver", async (request, response, next) => {
 
   try {
     const decodedToken = jwt.verify(token, config.SECRET);
-    const order = await Order.find({ receiver: decodedToken.id }).populate(
-      "items",
-      { name: 1, price: 1, photos: 1, description: 1 }
-    );
+
+    const pipeline = [
+      {
+        $unwind: "$items",
+      },
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.item",
+          foreignField: "_id",
+          as: "result",
+        },
+      },
+      {
+        $set: {
+          "items.item": "$result",
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          firstName: {
+            $first: "$firstName",
+          },
+          lastName: {
+            $first: "$lastName",
+          },
+          address: {
+            $first: "$address",
+          },
+          zipCode: {
+            $first: "$zipCode",
+          },
+          owner: {
+            $first: "$owner",
+          },
+          receiver: {
+            $first: "$receiver",
+          },
+          city: {
+            $first: "$city",
+          },
+          items: {
+            $push: "$items",
+          },
+        },
+      },
+      {
+        $unset: "items.item.__v",
+      },
+      {
+        $match: {
+          receiver: mongoose.Types.ObjectId(decodedToken.id),
+        },
+      },
+    ];
+
+    const order = await Order.aggregate(pipeline);
     response.json(order);
   } catch (exception) {
     next(exception);
